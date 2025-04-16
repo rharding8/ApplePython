@@ -1,0 +1,288 @@
+import sys
+from antlr4 import *
+sys.path.append('./')
+from grammar.WhileLexer import WhileLexer
+from grammar.WhileParser import WhileParser
+from grammar.WhileVisitor import WhileVisitor
+import logging
+from textwrap import indent, dedent
+
+class IRGen(WhileVisitor):
+    """A visitor that compiles the While language into
+SimpleIR. Statement visitors return nothing.  Expression visitors
+return the name of a variable that will hold the expression's value at
+runtime.
+    """
+    # PROJECT: implement the IR generation
+    def __init__(self, outfile):
+        self.outfile = outfile
+        self.labelnum = 0
+        self.varnum = 0
+
+    def freshlabel(self):
+        self.labelnum += 1
+        return f'_l{self.labelnum}'
+
+    def freshvar(self):
+        self.varnum += 1
+        return f'_t{self.varnum}'
+
+    # Visit a parse tree produced by WhileParser#Assignment.
+    def visitAssignment(self, ctx:WhileParser.AssignmentContext):
+        tempname = self.visit(ctx.a())
+        varname = ctx.ID().getText()
+        self.outfile.write(dedent(f'''\
+        {varname} := {tempname}
+        '''))
+        return None
+
+    # Visit a parse tree produced by WhileParser#Skip.
+    def visitSkip(self, ctx:WhileParser.SkipContext):
+        # do nothing
+        return None
+
+    # Visit a parse tree produced by WhileParser#If.
+    def visitIf(self, ctx:WhileParser.IfContext):
+        # create condition
+        condition = self.visit(ctx.b())
+        # create labels for branching
+        elselabel = self.freshlabel()
+        endiflabel = self.freshlabel()
+        # output code
+        self.outfile.write(dedent(f'''\
+        # visitIf
+        if {condition} = 0 goto {elselabel}
+        '''))
+        self.visit(ctx.s(0))
+        self.outfile.write(dedent(f'''\
+        goto {endiflabel}
+        {elselabel}:
+        '''))
+        self.visit(ctx.s(1))
+        self.outfile.write(dedent(f'''\
+        {endiflabel}:
+        '''))
+        return None
+
+    # Visit a parse tree produced by WhileParser#While.
+    def visitWhile(self, ctx:WhileParser.WhileContext):
+        # create labels for branching
+        headlabel = self.freshlabel()
+        endlabel = self.freshlabel()
+        self.outfile.write(dedent(f'''\
+        # visitWhile
+        {headlabel}: 
+        '''))
+        # create and handle condition
+        condition = self.visit(ctx.b())
+        self.outfile.write(dedent(f'''\
+        if {condition} = 0 goto {endlabel}
+        '''))
+        self.visit(ctx.s())
+        self.outfile.write(dedent(f'''\
+        goto {headlabel}
+        {endlabel}:
+        '''))
+        return None
+
+    # Visit a parse tree produced by WhileParser#Compound.
+    def visitCompound(self, ctx:WhileParser.CompoundContext):
+        # do nothing, except visit all nested statements
+        self.visitChildren(ctx)
+        return None
+
+    # Visit a parse tree produced by WhileParser#Not.
+    def visitNot(self, ctx:WhileParser.NotContext):
+        originvar = self.visit(ctx.b())
+        resultvar = self.freshvar()
+        # create labels for branching
+        falselabel = self.freshlabel()
+        truelabel = self.freshlabel()
+        # output code
+        self.outfile.write(dedent(f'''\
+        # visitNot
+        if {originvar} = 0 goto {falselabel}
+        {resultvar} := 0
+        goto {truelabel}
+        {falselabel}: {resultvar} := 1
+        {truelabel}:
+        '''))
+        return resultvar
+
+    # Visit a parse tree produced by WhileParser#And.
+    def visitAnd(self, ctx:WhileParser.AndContext):
+        var1 = self.visit(ctx.b(0))
+        var2 = self.visit(ctx.b(1))
+        resultvar = self.freshvar()
+        # create labels for branching
+        falselabel = self.freshlabel()
+        truelabel = self.freshlabel()
+        # output code
+        self.outfile.write(dedent(f'''\
+        # visitAnd
+        if {var1} = 0 goto {falselabel}
+        if {var2} = 0 goto {falselabel}
+        {resultvar} := 1
+        goto {truelabel}
+        {falselabel}: {resultvar} := 0
+        {truelabel}:
+        '''))
+        return resultvar
+
+    # Visit a parse tree produced by WhileParser#Or.
+    def visitOr(self, ctx:WhileParser.OrContext):
+        var1 = self.visit(ctx.b(0))
+        var2 = self.visit(ctx.b(1))
+        resultvar = self.freshvar()
+        # create labels for branching
+        rightlabel = self.freshlabel()
+        falselabel = self.freshlabel()
+        truelabel = self.freshlabel()
+        # output code
+        self.outfile.write(dedent(f'''\
+        # visitOr
+        if {var1} = 0 goto {rightlabel}
+        {resultvar} := 1
+        goto {truelabel}
+        {rightlabel}: if {var2} = 0 goto {falselabel}
+        {resultvar} := 1
+        goto {truelabel}
+        {falselabel}: {resultvar} := 0
+        {truelabel}:
+        '''))
+        return resultvar
+
+    # Visit a parse tree produced by WhileParser#ROp.
+    def visitROp(self, ctx:WhileParser.ROpContext):
+        var1 = self.visit(ctx.a(0))
+        var2 = self.visit(ctx.a(1))
+        op = ''
+        # get a new temp
+        resultvar = self.freshvar()
+        # handle op type
+        match ctx.op.type:
+            case WhileParser.LT:
+                op = ctx.LT().getText()
+            case WhileParser.LE:
+                op = ctx.LE().getText()
+            case WhileParser.EQ:
+                op = ctx.EQ().getText()
+            case WhileParser.GT:
+                op = ctx.GT().getText()
+            case WhileParser.GE:
+                op = ctx.GE().getText()
+            case _:
+                op = '?'
+        # create labels for branching
+        truelabel = self.freshlabel()
+        endlabel = self.freshlabel()
+        # output code
+        self.outfile.write(dedent(f'''\
+        # visitROp
+        if {var1} {op} {var2} goto {truelabel}
+        {resultvar} := 0
+        goto {endlabel}
+        {truelabel}: {resultvar} := 1
+        {endlabel}:
+        '''))
+        return resultvar
+
+    # Visit a parse tree produced by WhileParser#True.
+    def visitTrue(self, ctx:WhileParser.TrueContext):
+        varname = self.freshvar()
+        self.outfile.write(dedent(f'''\
+        # visitTrue
+        {varname} := 1
+        '''))
+        return varname
+
+    # Visit a parse tree produced by WhileParser#False.
+    def visitFalse(self, ctx:WhileParser.FalseContext):
+        varname = self.freshvar()
+        self.outfile.write(dedent(f'''\
+        # visitFalse
+        {varname} := 0
+        '''))
+        return varname
+
+    # Visit a parse tree produced by WhileParser#BParen.
+    def visitBParen(self, ctx:WhileParser.BParenContext):
+        return self.visit(ctx.b())
+
+    # Visit a parse tree produced by WhileParser#AOp.
+    def visitAOp(self, ctx:WhileParser.AOpContext):
+        var1 = self.visit(ctx.a(0))
+        var2 = self.visit(ctx.a(1))
+        op = ''
+        # get a new temp
+        resultvar = self.freshvar()
+        # handle op type
+        match ctx.op.type:
+            case WhileParser.PLUS:
+                op = ctx.PLUS().getText()
+            case WhileParser.MINUS:
+                op = ctx.MINUS().getText()
+            case WhileParser.MULT:
+                op = ctx.MULT().getText()
+            case WhileParser.DIV:
+                op = ctx.DIV().getText()
+            case _:
+                op = '?'
+        # output code
+        self.outfile.write(dedent(f'''\
+        # visitAOp
+        {resultvar} := {var1} {op} {var2}
+        '''))
+        # return the new temp
+        return resultvar
+
+    # Visit a parse tree produced by WhileParser#Var.
+    def visitVar(self, ctx:WhileParser.VarContext):
+        tempname = self.freshvar()
+        varname = ctx.ID().getText()
+        self.outfile.write(dedent(f'''\
+        # visitVar
+        {tempname} := {varname}
+        '''))
+        return tempname
+
+    # Visit a parse tree produced by WhileParser#Num.
+    def visitNum(self, ctx:WhileParser.NumContext):
+        tempname = self.freshvar()
+        num = ctx.NUM().getText()
+        self.outfile.write(dedent(f'''\
+        # visitNum
+        {tempname} := {num}
+        '''))
+        return tempname
+
+    # Visit a parse tree produced by WhileParser#AParen.
+    def visitAParen(self, ctx:WhileParser.AParenContext):
+        return self.visit(ctx.a())
+
+def irgen(input_stream, output_stream):
+    lexer = WhileLexer(input_stream)
+    stream = CommonTokenStream(lexer)
+    parser = WhileParser(stream)
+    tree = parser.s()
+    if parser.getNumberOfSyntaxErrors() > 0:
+        print("syntax errors")
+        exit(1)
+    else:
+        output_stream.write("function main\n")
+        # TODO need to collect the local vars, e.g., in the type checker or just run through them first?
+        translator = IRGen(output_stream)
+        translator.visit(tree)
+        output_stream.write("return 0\n")
+        output_stream.write("end function\n")
+      
+def main():
+    import sys
+    if len(sys.argv) > 1:
+        input_stream = FileStream(sys.argv[1])
+    else:
+        input_stream = StdinStream()
+    irgen(input_stream, sys.stdout)
+
+if __name__ == '__main__':
+    main()
