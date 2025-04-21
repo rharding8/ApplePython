@@ -1,19 +1,14 @@
 import sys
 from antlr4 import *
 sys.path.append('./')
-from grammar.WhileLexer import WhileLexer
-from grammar.WhileParser import WhileParser
-from grammar.WhileVisitor import WhileVisitor
+from grammar.jvmBasicLexer import jvmBasicLexer
+from grammar.jvmBasicParser import jvmBasicParser
+from grammar.jvmBasicVisitor import jvmBasicVisitor
 import logging
 from textwrap import indent, dedent
 
-class IRGen(WhileVisitor):
-    """A visitor that compiles the While language into
-SimpleIR. Statement visitors return nothing.  Expression visitors
-return the name of a variable that will hold the expression's value at
-runtime.
-    """
-    # PROJECT: implement the IR generation
+class PyGen(jvmBasicVisitor):
+    # PROJECT: Implement the Python generation
     def __init__(self, outfile):
         self.outfile = outfile
         self.labelnum = 0
@@ -26,9 +21,26 @@ runtime.
     def freshvar(self):
         self.varnum += 1
         return f'_t{self.varnum}'
+    
+    # Visit a parse tree produced by jvmBasicParser#Pro.
+    def visitProg(self, ctx:jvmBasicParser.ProgContext):
+        for l in ctx.line():
+            self.visit(l)
+        return None
+    
+    # Visit a parse tree produced by jvmBasicParser#Line.
+    def visitLine(self, ctx:jvmBasicParser.LineContext):
+        for a in ctx.amprstmt():
+            self.visit(a)
+        return None
+    
+    # Visit a parse tree produced by jvmBasicParser#Line.
+    def visitAmprstmt(self, ctx:jvmBasicParser.AmprstmtContext):
+        self.visit(ctx.statement())
+        return None
 
-    # Visit a parse tree produced by WhileParser#Assignment.
-    def visitAssignment(self, ctx:WhileParser.AssignmentContext):
+    # Visit a parse tree produced by jvmBasicParser#Assignment.
+    def visitAssignment(self, ctx:jvmBasicParser.AssignmentContext):
         tempname = self.visit(ctx.a())
         varname = ctx.ID().getText()
         self.outfile.write(dedent(f'''\
@@ -36,13 +48,13 @@ runtime.
         '''))
         return None
 
-    # Visit a parse tree produced by WhileParser#Skip.
-    def visitSkip(self, ctx:WhileParser.SkipContext):
+    # Visit a parse tree produced by jvmBasicParser#Skip.
+    def visitSkip(self, ctx:jvmBasicParser.SkipContext):
         # do nothing
         return None
 
-    # Visit a parse tree produced by WhileParser#If.
-    def visitIf(self, ctx:WhileParser.IfContext):
+    # Visit a parse tree produced by jvmBasicParser#If.
+    def visitIf(self, ctx:jvmBasicParser.IfContext):
         # create condition
         condition = self.visit(ctx.b())
         # create labels for branching
@@ -50,29 +62,24 @@ runtime.
         endiflabel = self.freshlabel()
         # output code
         self.outfile.write(dedent(f'''\
-        # visitIf
         if {condition} = 0 goto {elselabel}
         '''))
         self.visit(ctx.s(0))
         self.outfile.write(dedent(f'''\
         goto {endiflabel}
-        {elselabel}:
-        '''))
+        {elselabel}: '''))
         self.visit(ctx.s(1))
         self.outfile.write(dedent(f'''\
-        {endiflabel}:
-        '''))
+        {endiflabel}: '''))
         return None
 
-    # Visit a parse tree produced by WhileParser#While.
-    def visitWhile(self, ctx:WhileParser.WhileContext):
+    # Visit a parse tree produced by jvmBasicParser#While.
+    def visitWhile(self, ctx:jvmBasicParser.jvmBasicContext):
         # create labels for branching
         headlabel = self.freshlabel()
         endlabel = self.freshlabel()
         self.outfile.write(dedent(f'''\
-        # visitWhile
-        {headlabel}: 
-        '''))
+        {headlabel}: '''))
         # create and handle condition
         condition = self.visit(ctx.b())
         self.outfile.write(dedent(f'''\
@@ -81,18 +88,11 @@ runtime.
         self.visit(ctx.s())
         self.outfile.write(dedent(f'''\
         goto {headlabel}
-        {endlabel}:
-        '''))
+        {endlabel}: '''))
         return None
 
-    # Visit a parse tree produced by WhileParser#Compound.
-    def visitCompound(self, ctx:WhileParser.CompoundContext):
-        # do nothing, except visit all nested statements
-        self.visitChildren(ctx)
-        return None
-
-    # Visit a parse tree produced by WhileParser#Not.
-    def visitNot(self, ctx:WhileParser.NotContext):
+    # Visit a parse tree produced by jvmBasicParser#Not.
+    def visitNot(self, ctx:jvmBasicParser.NotContext):
         originvar = self.visit(ctx.b())
         resultvar = self.freshvar()
         # create labels for branching
@@ -100,17 +100,15 @@ runtime.
         truelabel = self.freshlabel()
         # output code
         self.outfile.write(dedent(f'''\
-        # visitNot
         if {originvar} = 0 goto {falselabel}
         {resultvar} := 0
         goto {truelabel}
         {falselabel}: {resultvar} := 1
-        {truelabel}:
-        '''))
+        {truelabel}: '''))
         return resultvar
 
-    # Visit a parse tree produced by WhileParser#And.
-    def visitAnd(self, ctx:WhileParser.AndContext):
+    # Visit a parse tree produced by jvmBasicParser#And.
+    def visitAnd(self, ctx:jvmBasicParser.AndContext):
         var1 = self.visit(ctx.b(0))
         var2 = self.visit(ctx.b(1))
         resultvar = self.freshvar()
@@ -119,18 +117,16 @@ runtime.
         truelabel = self.freshlabel()
         # output code
         self.outfile.write(dedent(f'''\
-        # visitAnd
         if {var1} = 0 goto {falselabel}
         if {var2} = 0 goto {falselabel}
         {resultvar} := 1
         goto {truelabel}
         {falselabel}: {resultvar} := 0
-        {truelabel}:
-        '''))
+        {truelabel}: '''))
         return resultvar
 
-    # Visit a parse tree produced by WhileParser#Or.
-    def visitOr(self, ctx:WhileParser.OrContext):
+    # Visit a parse tree produced by jvmBasicParser#Or.
+    def visitOr(self, ctx:jvmBasicParser.OrContext):
         var1 = self.visit(ctx.b(0))
         var2 = self.visit(ctx.b(1))
         resultvar = self.freshvar()
@@ -140,7 +136,6 @@ runtime.
         truelabel = self.freshlabel()
         # output code
         self.outfile.write(dedent(f'''\
-        # visitOr
         if {var1} = 0 goto {rightlabel}
         {resultvar} := 1
         goto {truelabel}
@@ -148,12 +143,11 @@ runtime.
         {resultvar} := 1
         goto {truelabel}
         {falselabel}: {resultvar} := 0
-        {truelabel}:
-        '''))
+        {truelabel}: '''))
         return resultvar
 
-    # Visit a parse tree produced by WhileParser#ROp.
-    def visitROp(self, ctx:WhileParser.ROpContext):
+    # Visit a parse tree produced by jvmBasicParser#ROp.
+    def visitROp(self, ctx:jvmBasicParser.ROpContext):
         var1 = self.visit(ctx.a(0))
         var2 = self.visit(ctx.a(1))
         op = ''
@@ -161,15 +155,15 @@ runtime.
         resultvar = self.freshvar()
         # handle op type
         match ctx.op.type:
-            case WhileParser.LT:
+            case jvmBasicParser.LT:
                 op = ctx.LT().getText()
-            case WhileParser.LE:
+            case jvmBasicParser.LE:
                 op = ctx.LE().getText()
-            case WhileParser.EQ:
+            case jvmBasicParser.EQ:
                 op = ctx.EQ().getText()
-            case WhileParser.GT:
+            case jvmBasicParser.GT:
                 op = ctx.GT().getText()
-            case WhileParser.GE:
+            case jvmBasicParser.GE:
                 op = ctx.GE().getText()
             case _:
                 op = '?'
@@ -178,39 +172,35 @@ runtime.
         endlabel = self.freshlabel()
         # output code
         self.outfile.write(dedent(f'''\
-        # visitROp
         if {var1} {op} {var2} goto {truelabel}
         {resultvar} := 0
         goto {endlabel}
         {truelabel}: {resultvar} := 1
-        {endlabel}:
-        '''))
+        {endlabel}: '''))
         return resultvar
 
-    # Visit a parse tree produced by WhileParser#True.
-    def visitTrue(self, ctx:WhileParser.TrueContext):
+    # Visit a parse tree produced by jvmBasicParser#True.
+    def visitTrue(self, ctx:jvmBasicParser.TrueContext):
         varname = self.freshvar()
         self.outfile.write(dedent(f'''\
-        # visitTrue
         {varname} := 1
         '''))
         return varname
 
-    # Visit a parse tree produced by WhileParser#False.
-    def visitFalse(self, ctx:WhileParser.FalseContext):
+    # Visit a parse tree produced by jvmBasicParser#False.
+    def visitFalse(self, ctx:jvmBasicParser.FalseContext):
         varname = self.freshvar()
         self.outfile.write(dedent(f'''\
-        # visitFalse
         {varname} := 0
         '''))
         return varname
 
-    # Visit a parse tree produced by WhileParser#BParen.
-    def visitBParen(self, ctx:WhileParser.BParenContext):
+    # Visit a parse tree produced by jvmBasicParser#BParen.
+    def visitBParen(self, ctx:jvmBasicParser.BParenContext):
         return self.visit(ctx.b())
 
-    # Visit a parse tree produced by WhileParser#AOp.
-    def visitAOp(self, ctx:WhileParser.AOpContext):
+    # Visit a parse tree produced by jvmBasicParser#AOp.
+    def visitAOp(self, ctx:jvmBasicParser.AOpContext):
         var1 = self.visit(ctx.a(0))
         var2 = self.visit(ctx.a(1))
         op = ''
@@ -218,52 +208,68 @@ runtime.
         resultvar = self.freshvar()
         # handle op type
         match ctx.op.type:
-            case WhileParser.PLUS:
+            case jvmBasicParser.PLUS:
                 op = ctx.PLUS().getText()
-            case WhileParser.MINUS:
+            case jvmBasicParser.MINUS:
                 op = ctx.MINUS().getText()
-            case WhileParser.MULT:
+            case jvmBasicParser.MULT:
                 op = ctx.MULT().getText()
-            case WhileParser.DIV:
+            case jvmBasicParser.DIV:
                 op = ctx.DIV().getText()
             case _:
                 op = '?'
         # output code
         self.outfile.write(dedent(f'''\
-        # visitAOp
         {resultvar} := {var1} {op} {var2}
         '''))
         # return the new temp
         return resultvar
 
-    # Visit a parse tree produced by WhileParser#Var.
-    def visitVar(self, ctx:WhileParser.VarContext):
+    # Visit a parse tree produced by jvmBasicParser#Var.
+    def visitVar(self, ctx:jvmBasicParser.VarContext):
         tempname = self.freshvar()
         varname = ctx.ID().getText()
         self.outfile.write(dedent(f'''\
-        # visitVar
         {tempname} := {varname}
         '''))
         return tempname
 
-    # Visit a parse tree produced by WhileParser#Num.
-    def visitNum(self, ctx:WhileParser.NumContext):
+    # Visit a parse tree produced by jvmBasicParser#Num.
+    def visitNum(self, ctx:jvmBasicParser.NumContext):
         tempname = self.freshvar()
         num = ctx.NUM().getText()
         self.outfile.write(dedent(f'''\
-        # visitNum
         {tempname} := {num}
         '''))
         return tempname
 
-    # Visit a parse tree produced by WhileParser#AParen.
-    def visitAParen(self, ctx:WhileParser.AParenContext):
+    # Visit a parse tree produced by jvmBasicParser#AParen.
+    def visitAParen(self, ctx:jvmBasicParser.AParenContext):
         return self.visit(ctx.a())
+    
+    # Visit a parse tree produced by jvmBasicParser#Printstmt1.
+    def visitPrintstmt1(self, ctx:jvmBasicParser.Printstmt1Context):
+        self.outfile.write(dedent(f'''\
+        print(f'''))
+        self.visit(ctx.printlist())
+        self.outfile.write(dedent(f'''\
+        )
+        '''))
+        return
+    
+    # Visit a parse tree produced by jvmBasicParser#Printlist.
+    def visitPrintlist(self, ctx:jvmBasicParser.PrintlistContext):
+        for e in ctx.expression():
+            self.visit(e)
+            if not ctx.COMMA() == None:
+                self.outfile.write(dedent(f'''\
+                \t'''))
+        return
 
-def irgen(input_stream, output_stream):
-    lexer = WhileLexer(input_stream)
+def pygen(input_stream, output_stream):
+    lexer = jvmBasicLexer(input_stream)
     stream = CommonTokenStream(lexer)
-    parser = WhileParser(stream)
+    parser = jvmBasicParser(stream)
     tree = parser.s()
     if parser.getNumberOfSyntaxErrors() > 0:
         print("syntax errors")
@@ -271,7 +277,7 @@ def irgen(input_stream, output_stream):
     else:
         output_stream.write("function main\n")
         # TODO need to collect the local vars, e.g., in the type checker or just run through them first?
-        translator = IRGen(output_stream)
+        translator = PyGen(output_stream)
         translator.visit(tree)
         output_stream.write("return 0\n")
         output_stream.write("end function\n")
@@ -282,7 +288,7 @@ def main():
         input_stream = FileStream(sys.argv[1])
     else:
         input_stream = StdinStream()
-    irgen(input_stream, sys.stdout)
+    pygen(input_stream, sys.stdout)
 
 if __name__ == '__main__':
     main()
