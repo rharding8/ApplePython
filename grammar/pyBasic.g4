@@ -1,7 +1,7 @@
 // $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
 // $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
 
-grammar jvmBasic;
+grammar pyBasic;
 
 options {
     caseInsensitive = true;
@@ -33,7 +33,11 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/ // a program is a collection of lines
+*/
+
+// Modified to suit AppleSoft BASIC, and for better ANTLR Python Integration, by Ryan Harding
+
+// a program is a collection of lines
 prog
     : line+ EOF
     ;
@@ -52,38 +56,38 @@ linenumber
     ;
 
 amprstmt
-    : amperoper? statement
-    | COMMENT
-    | REM
+    : amperoper? statement # AmprStatement
+    | COMMENT # CommentStatement
+    | REM # RemStatement
     ;
 
 statement
-    : CLS # ClearStatement
-    //| LOAD
-    | SAVE # SaveStatement
+    : HOME # HomeStatement
+    //| CLS # ClearStatement
+    //| LOAD # LoadStatement
+    //| SAVE # SaveStatement
     //| TRACE
     //| NOTRACE
-    | FLASH # FlashStatement
-    | INVERSE # InverseStatement
+    //| FLASH # FlashStatement
+    //| INVERSE # InverseStatement
     //| GR
-    | NORMAL # NormalStatement
-    | SHLOAD # SHLoadStatement
+    //| NORMAL # NormalStatement
+    //| SHLOAD # SHLoadStatement
     //| CLEAR
     //| RUN
     | STOP # StopStatement
     //| TEXT
-    | HOME # HomeStatement
     //| HGR
     //| HGR2
     | endstmt # EndStatement
     | returnstmt # ReturnStatement
     | restorestmt # RestoreStatement
-    | amptstmt # AmptStatement
-    | popstmt # PopStatement
+    // | amptstmt # AmptStatement
+    //| popstmt # PopStatement
     //| liststmt
-    | storestmt # StoreStatement
+    //| storestmt # StoreStatement
     | getstmt # GetStatement
-    | recallstmt # RecallStatement
+    //| recallstmt # RecallStatement
     | nextstmt # NextStatement
     //| instmt
     //| prstmt
@@ -91,17 +95,17 @@ statement
     //| hlinstmt
     //| vlinstmt
     //| colorstmt
-    | speedstmt # SpeedStatement
-    | scalestmt # ScaleStatement
-    | rotstmt # RotStatement
+    //| speedstmt # SpeedStatement
+    //| scalestmt # ScaleStatement
+    //| rotstmt # RotStatement
     //| hcolorstmt
-    | himemstmt # HimemStatement
-    | lomemstmt # LomemStatement
+    //| himemstmt # HimemStatement
+    //| lomemstmt # LomemStatement
     | printstmt1 # PrintStatement
     //| pokestmt
     //| plotstmt
-    | ongotostmt # OnGotoStatement
-    | ongosubstmt # OnGosubStatement
+    //| ongotostmt # OnGotoStatement
+    //| ongosubstmt # OnGosubStatement
     | ifstmt # IfStatement
     | forstmt1 # ForStatementIn
     | forstmt2 # ForStatementOut
@@ -110,19 +114,19 @@ statement
     | dimstmt # DimStatement
     | gotostmt # GotoStatement
     | gosubstmt # GosubStatement
-    | callstmt # CallStatement
+    //| callstmt # CallStatement
     | readstmt # ReadStatement
     //| hplotstmt
     //| vplotstmt
-    | vtabstmnt # VTabStatement
-    | htabstmnt # HTabStatement
-    | waitstmt # WaitStatement
+    //| vtabstmnt # VTabStatement
+    //| htabstmnt # HTabStatement
+    //| waitstmt # WaitStatement
     | datastmt # DataStatement
-    | xdrawstmt # XDrawStatement
-    | drawstmt # DrawStatement
+    //| xdrawstmt # XDrawStatement
+    //| drawstmt # DrawStatement
     | defstmt # DefStatement
     | letstmt # LetStatement
-    | includestmt # IncludeStatement
+    //| includestmt # IncludeStatement
     ;
 
 vardecl
@@ -189,23 +193,23 @@ gosubstmt
 
 /*pokestmt
     : POKE expression COMMA expression
-    ;*/
+    ;
 
 callstmt
     : CALL exprlist
     ;
 
-/*hplotstmt
+hplotstmt
     : HPLOT (expression COMMA expression)? (TO expression COMMA expression)*
     ;
 
 vplotstmt
     : VPLOT (expression COMMA expression)? (TO expression COMMA expression)*
-    ;*/
+    ;
 
-/*plotstmt
+plotstmt
     : PLOT expression COMMA expression
-    ;*/
+    ;
 
 ongotostmt
     : ON expression GOTO linenumber (COMMA linenumber)*
@@ -229,7 +233,7 @@ himemstmt
 
 lomemstmt
     : LOMEM COLON expression
-    ;
+    ;*/
 
 datastmt
     : DATA datum (COMMA datum?)*
@@ -240,7 +244,7 @@ datum
     | STRINGLITERAL
     ;
 
-waitstmt
+/*waitstmt
     : WAIT expression COMMA expression (COMMA expression)?
     ;
 
@@ -250,7 +254,7 @@ xdrawstmt
 
 drawstmt
     : DRAW expression (AT expression COMMA expression)?
-    ;
+    ;*/
 
 defstmt
     : DEF FN? var_ LPAREN var_ RPAREN EQ expression
@@ -260,7 +264,7 @@ tabstmt
     : TAB LPAREN expression RPAREN
     ;
 
-speedstmt
+/*speedstmt
     : SPEED EQ expression
     ;
 
@@ -272,7 +276,7 @@ scalestmt
     : SCALE EQ expression
     ;
 
-/*colorstmt
+colorstmt
     : COLOR EQ expression
     ;
 
@@ -298,7 +302,7 @@ prstmt
 
 instmt
     : INNUMBER NUMBER
-    ;*/
+    ;
 
 storestmt
     : STORE vardecl
@@ -308,9 +312,9 @@ recallstmt
     : RECALL vardecl
     ;
 
-/*liststmt
+liststmt
     : LIST expression?
-    ;*/
+    ;
 
 popstmt
     : POP (expression COMMA expression)?
@@ -322,7 +326,7 @@ amptstmt
 
 includestmt
     : INCLUDE expression
-    ;
+    ;*/
 
 endstmt
     : END
@@ -351,15 +355,15 @@ func_
     | lenfunc # LengthFunction
     | strfunc # StringFunction
     | ascfunc # AsciiFunction
-    | scrnfunc # ScreenFunction
+    //| scrnfunc # ScreenFunction
     | midfunc # MidFunction
     //| pdlfunc
     //| peekfunc
-    | intfunc # IntegerFunction
+    | intfunc # LargestIntegerFunction
     | spcfunc # SpcFunction
-    | frefunc # FreFunction
-    | posfunc # PosFunction
-    | usrfunc # UserFunction
+    //| frefunc # FreFunction
+    //| posfunc # PosFunction
+    //| usrfunc # UserFunction
     | leftfunc # LeftFunction
     | valfunc # ValueFunction
     | rightfunc # RightFunction
@@ -367,11 +371,11 @@ func_
     | sinfunc # SinFunction
     | cosfunc # CosFunction
     | tanfunc # TanFunction
-    | atnfunc # AtnFunction
+    | atnfunc # ArcTanFunction
     | rndfunc # RandFunction
     | sgnfunc # SignFunction
-    | expfunc # ExponentialFunction
-    | logfunc # LogFunction
+    | expfunc # ExpFunction
+    | logfunc # NaturalLogFunction
     | absfunc # AbsoluteFunction
     | LPAREN expression RPAREN # ParentheticalFunction
     ;
@@ -460,7 +464,7 @@ spcfunc
     : SPC LPAREN expression RPAREN
     ;
 
-frefunc
+/*frefunc
     : FRE LPAREN expression RPAREN
     ;
 
@@ -470,7 +474,7 @@ posfunc
 
 usrfunc
     : USR LPAREN expression RPAREN
-    ;
+    ;*/
 
 leftfunc
     : LEFT LPAREN expression COMMA expression RPAREN
@@ -492,9 +496,9 @@ valfunc
     : VAL LPAREN expression RPAREN
     ;
 
-scrnfunc
+/*scrnfunc
     : SCRN LPAREN expression COMMA expression RPAREN
-    ;
+    ;*/
 
 sinfunc
     : SIN LPAREN expression RPAREN
@@ -719,9 +723,9 @@ LEN
     : 'LEN'
     ;
 
-CALL
+/*CALL
     : 'CALL'
-    ;
+    ;*/
 
 ASC
     : 'ASC'
@@ -741,7 +745,7 @@ PRNUMBER
 
 INNUMBER
     : 'IN#'
-    ;*/
+    ;
 
 VTAB
     : 'VTAB'
@@ -749,17 +753,17 @@ VTAB
 
 HTAB
     : 'HTAB'
-    ;
+    ;*/
 
 HOME
     : 'HOME'
     ;
 
-ON
+/*ON
     : 'ON'
     ;
 
-/*PDL
+PDL
     : 'PDL'
     ;*/
 
@@ -783,7 +787,7 @@ STOP
     : 'STOP'
     ;
 
-HIMEM
+/*HIMEM
     : 'HIMEM'
     ;
 
@@ -803,7 +807,7 @@ NORMAL
     : 'NORMAL'
     ;
 
-/*ONERR
+ONERR
     : 'ONERR'
     ;*/
 
@@ -811,7 +815,7 @@ SPC
     : 'SPC'
     ;
 
-FRE
+/*FRE
     : 'FRE'
     ;
 
@@ -823,7 +827,7 @@ USR
     : 'USR'
     ;
 
-/*TRACE
+TRACE
     : 'TRACE'
     ;
 
@@ -843,21 +847,21 @@ DATA
     : 'DATA'
     ;
 
-WAIT
+/*WAIT
     : 'WAIT'
-    ;
+    ;*/
 
 READ
     : 'READ'
     ;
 
-XDRAW
+/*XDRAW
     : 'XDRAW'
     ;
 
 DRAW
     : 'DRAW'
-    ;
+    ;*/
 
 AT
     : 'AT'
@@ -879,7 +883,7 @@ TAB
     : 'TAB'
     ;
 
-SPEED
+/*SPEED
     : 'SPEED'
     ;
 
@@ -891,7 +895,7 @@ SCALE
     : 'SCALE'
     ;
 
-/*COLOR
+COLOR
     : 'COLOR'
     ;
 
@@ -905,7 +909,7 @@ HCOLOR
 
 VLIN
     : 'VLIN'
-    ;*/
+    ;
 
 SCRN
     : 'SCRN'
@@ -917,7 +921,7 @@ POP
 
 SHLOAD
     : 'SHLOAD'
-    ;
+    ;*/
 
 SIN
     : 'SIN'
@@ -955,13 +959,13 @@ ABS
     : 'ABS'
     ;
 
-STORE
+/*STORE
     : 'STORE'
     ;
 
 RECALL
     : 'RECALL'
-    ;
+    ;*/
 
 GET
     : 'GET'
@@ -987,11 +991,11 @@ RESTORE
     : 'RESTORE'
     ;
 
-SAVE
+/*SAVE
     : 'SAVE'
     ;
 
-/*LOAD
+LOAD
     : 'LOAD'
     ;
 */
@@ -999,13 +1003,13 @@ QUESTION
     : '?'
     ;
 
-INCLUDE
+/*INCLUDE
     : 'INCLUDE'
     ;
 
 CLS
     : 'CLS'
-    ;
+    ;*/
 
 COMMENT
     : REM ~ [\r\n]*
