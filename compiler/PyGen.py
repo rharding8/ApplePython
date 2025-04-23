@@ -21,7 +21,7 @@ class PyGen(pyBasicVisitor):
     def visitProg(self, ctx:pyBasicParser.ProgContext):
         # Import sys (FOR END AND STOP)
         self.outfile.write(dedent(f'''\
-        import sys
+        import sys, math, numpy, random
         '''))
 
         # Start Class
@@ -248,7 +248,8 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#SquareRootFunction.
     def visitSquareRootFunction(self, ctx:pyBasicParser.SquareRootFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"math.sqrt({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#LengthFunction.
@@ -316,47 +317,56 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#SinFunction.
     def visitSinFunction(self, ctx:pyBasicParser.SinFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"math.sin({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#CosFunction.
     def visitCosFunction(self, ctx:pyBasicParser.CosFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"math.cos({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#TanFunction.
     def visitTanFunction(self, ctx:pyBasicParser.TanFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"math.tan({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#ArcTanFunction.
     def visitArcTanFunction(self, ctx:pyBasicParser.ArcTanFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"math.atan({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#RandFunction.
     def visitRandFunction(self, ctx:pyBasicParser.RandFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"random.random({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#SignFunction.
     def visitSignFunction(self, ctx:pyBasicParser.SignFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"numpy.sign({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#ExpFunction.
     def visitExpFunction(self, ctx:pyBasicParser.ExpFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"math.exp({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#NaturalLogFunction.
     def visitNaturalLogFunction(self, ctx:pyBasicParser.NaturalLogFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"math.log({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#AbsoluteFunction.
     def visitAbsoluteFunction(self, ctx:pyBasicParser.AbsoluteFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"abs({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#ParentheticalFunction.
