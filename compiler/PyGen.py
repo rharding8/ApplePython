@@ -23,11 +23,18 @@ class PyGen(pyBasicVisitor):
         self.outfile.write(dedent(f'''\
         import sys
         '''))
-        # Create the DATA Array and the DATA_PTR
+
+        # Start Class
         self.outfile.write(dedent(f'''\
-        data = []
-        data_prt = 0
-        '''))
+        class Program():'''))
+        self.outfile.write(f'''\
+
+        ''')
+
+        # Create the DATA Array and the DATA_PTR
+        self.outfile.write(f'''data = []
+        data_ptr = 0
+        ''')
 
         # Create a list of all the lines and linenumbers,
         # populate function destinations,
@@ -35,26 +42,20 @@ class PyGen(pyBasicVisitor):
         for l in ctx.line():
             self.linedict.update({l.linenumber().NUMBER().getText(): l})
             for a in l.amprstmt():
-                if type(a) == type(pyBasicParser.CommentStatementContext) or type(pyBasicParser.RemStatementContext):
+                if type(a) == pyBasicParser.CommentStatementContext or type(a) == pyBasicParser.RemStatementContext:
                     continue
                 s = a.statement()
                 match type(s):
                     case pyBasicParser.GotoStatementContext | pyBasicParser.GosubStatementContext:
                         self.targets.update({s.linenumber().NUMBER().getText(): 0})
                     case pyBasicParser.DataStatementContext:
-                        data_append = [int(d.number().NUMBER().getText()) for d in s.datum()]
+                        data_append = [int(d.number().getText()) for d in s.datum()]
 
-                        self.outfile.write(dedent(f'''\
-                        data.append({data_append})
-                        '''))
+                        self.outfile.write(f'''data.extend({data_append})
+        ''')
                     case _:
                         continue
 
-        self.outfile.write(dedent(f'''\
-        def main():'''))
-        self.outfile.write(f'''\
-
-        ''')
         for l in self.linedict.values():
             self.visit(l)
         return
@@ -108,14 +109,9 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#RestoreStatement.
     def visitRestoreStatement(self, ctx:pyBasicParser.RestoreStatementContext):
-        self.outfile.write(f'''data_prt = 0
+        self.outfile.write(f'''data_ptr = 0
         ''')
         return
-
-
-    # Visit a parse tree produced by pyBasicParser#GetStatement.
-    def visitGetStatement(self, ctx:pyBasicParser.GetStatementContext):
-        return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by pyBasicParser#NextStatement.
@@ -126,7 +122,7 @@ class PyGen(pyBasicVisitor):
     # Visit a parse tree produced by pyBasicParser#PrintStatement.
     def visitPrintStatement(self, ctx:pyBasicParser.PrintStatementContext):
         text = self.visit(ctx.printlist())
-        self.outfile.write(f'''print(f"{text}")
+        self.outfile.write(f'''print({text})
         ''')
         return
 
@@ -146,19 +142,17 @@ class PyGen(pyBasicVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by pyBasicParser#InputStatement.
-    def visitInputStatement(self, ctx:pyBasicParser.InputStatementContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by pyBasicParser#TabStatement.
-    def visitTabStatement(self, ctx:pyBasicParser.TabStatementContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by pyBasicParser#DimStatement.
     def visitDimStatement(self, ctx:pyBasicParser.DimStatementContext):
-        return self.visitChildren(ctx)
+        for v in ctx.vardecl():
+            var = self.visit(v)
+            self.outfile.write(f'''{var} = []
+        ''')
+
+        self.outfile.write(f'''\
+        
+        ''')
+        return
 
 
     # Visit a parse tree produced by pyBasicParser#GotoStatement.
@@ -173,12 +167,17 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#ReadStatement.
     def visitReadStatement(self, ctx:pyBasicParser.ReadStatementContext):
-        return self.visitChildren(ctx)
+        for v in ctx.vardecl():
+            var = self.visit(v)
+            self.outfile.write(f'''{var} = data[data_ptr]
+        data_ptr = data_ptr + 1
+        ''')
+        return
 
 
     # Visit a parse tree produced by pyBasicParser#DataStatement.
     def visitDataStatement(self, ctx:pyBasicParser.DataStatementContext):
-        return self.visitChildren(ctx)
+        return
 
 
     # Visit a parse tree produced by pyBasicParser#DefStatement.
@@ -188,12 +187,14 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#LetStatement.
     def visitLetStatement(self, ctx:pyBasicParser.LetStatementContext):
-        return self.visitChildren(ctx)
+        self.outfile.write(f'''{self.visit(ctx.vardecl())} = {self.visit(ctx.expression(0))}
+        ''')
+        return
 
 
     # Visit a parse tree produced by pyBasicParser#vardecl.
     def visitVardecl(self, ctx:pyBasicParser.VardeclContext):
-        return self.visitChildren(ctx)
+        return self.visit(ctx.var_())
 
 
     # Visit a parse tree produced by pyBasicParser#printlist.
@@ -204,9 +205,9 @@ class PyGen(pyBasicVisitor):
                 separator = " "
                 match ctx.printseparator(i - 1).op.type:
                     case pyBasicParser.COMMA:
-                        separator = "\t"
+                        separator = " + \"\\t\" + "
                     case pyBasicParser.SEMICOLON:
-                        separator = ""
+                        separator = " + \"\" + "
                     case _:
                         separator = " impossible! "
                 text = text + separator
@@ -226,17 +227,12 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#StringLiteralFunction.
     def visitStringLiteralFunction(self, ctx:pyBasicParser.StringLiteralFunctionContext):
-        return ctx.STRINGLITERAL().getText()[1:-1]
+        return ctx.STRINGLITERAL().getText()
 
 
     # Visit a parse tree produced by pyBasicParser#NumberFunction.
     def visitNumberFunction(self, ctx:pyBasicParser.NumberFunctionContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by pyBasicParser#TabFunction.
-    def visitTabFunction(self, ctx:pyBasicParser.TabFunctionContext):
-        return self.visitChildren(ctx)
+        return ctx.number().getText()
 
 
     # Visit a parse tree produced by pyBasicParser#DeclarationFunction.
@@ -246,7 +242,8 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#CharacterFunction.
     def visitCharacterFunction(self, ctx:pyBasicParser.CharacterFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"chr({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#SquareRootFunction.
@@ -256,22 +253,31 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#LengthFunction.
     def visitLengthFunction(self, ctx:pyBasicParser.LengthFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"len({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#StringFunction.
     def visitStringFunction(self, ctx:pyBasicParser.StringFunctionContext):
-        return self.visitChildren(ctx)
+        text = f"str({self.visit(ctx.expression())})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#AsciiFunction.
     def visitAsciiFunction(self, ctx:pyBasicParser.AsciiFunctionContext):
-        return self.visitChildren(ctx)
+        char = f'\'{self.visit(ctx.expression())[1]}\''
+        text = f"ord({char})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#MidFunction.
     def visitMidFunction(self, ctx:pyBasicParser.MidFunctionContext):
-        return self.visitChildren(ctx)
+        string = self.visit(ctx.expression(0))
+        start = int(self.visit(ctx.expression(1)))
+        if len(ctx.expression()) != 3:
+            return '\"' + string[start:]
+        end = start + int(self.visit(ctx.expression(2)))
+        return '\"' + string[start:end] + '\"'
 
 
     # Visit a parse tree produced by pyBasicParser#LargestIntegerFunction.
@@ -279,24 +285,28 @@ class PyGen(pyBasicVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by pyBasicParser#SpcFunction.
-    def visitSpcFunction(self, ctx:pyBasicParser.SpcFunctionContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by pyBasicParser#LeftFunction.
     def visitLeftFunction(self, ctx:pyBasicParser.LeftFunctionContext):
-        return self.visitChildren(ctx)
+        string = self.visit(ctx.expression(0))
+        num = int(self.visit(ctx.expression(1))) + 1
+        return string[0:num] + '\"'
 
 
     # Visit a parse tree produced by pyBasicParser#ValueFunction.
     def visitValueFunction(self, ctx:pyBasicParser.ValueFunctionContext):
-        return self.visitChildren(ctx)
+        numstring = self.visit(ctx.expression())
+        if '.' in numstring:
+            text = f"float({numstring})"
+        else:
+            text = f"int({numstring})"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#RightFunction.
     def visitRightFunction(self, ctx:pyBasicParser.RightFunctionContext):
-        return self.visitChildren(ctx)
+        string = self.visit(ctx.expression(0))
+        num = int(self.visit(ctx.expression(1))) + 1
+        return '\"' + string[-num:]
 
 
     # Visit a parse tree produced by pyBasicParser#FnFunction.
@@ -356,53 +366,103 @@ class PyGen(pyBasicVisitor):
 
     # Visit a parse tree produced by pyBasicParser#signExpression.
     def visitSignExpression(self, ctx:pyBasicParser.SignExpressionContext):
-        return self.visitChildren(ctx)
+        text = ""
+        if ctx.NOT() != None:
+            text = text + 'not'
+        if ctx.MINUS() != None:
+            text = text + '-'
+
+        text = text + self.visit(ctx.func_())
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#exponentExpression.
     def visitExponentExpression(self, ctx:pyBasicParser.ExponentExpressionContext):
-        return self.visitChildren(ctx)
+        text = ""
+        for i in range(0,len(ctx.signExpression())):
+            if i > 0:
+                text = text + " ^ "
+            text = text + self.visit(ctx.signExpression(i))
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#multiplyingExpression.
     def visitMultiplyingExpression(self, ctx:pyBasicParser.MultiplyingExpressionContext):
-        return self.visitChildren(ctx)
+        text = ""
+        for i in range(0,len(ctx.exponentExpression())):
+            if i > 0:
+                match ctx.multdivoperator(i - 1).op.type:
+                    case pyBasicParser.TIMES:
+                        text = text + " * "
+                    case pyBasicParser.DIV:
+                        text = text + " / "
+                    case _:
+                        text = " impossible! "
+            text = text + self.visit(ctx.exponentExpression(i))
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#addingExpression.
     def visitAddingExpression(self, ctx:pyBasicParser.AddingExpressionContext):
-        return self.visitChildren(ctx)
+        text = ""
+        for i in range(0,len(ctx.multiplyingExpression())):
+            if i > 0:
+                match ctx.addsuboperator(i - 1).op.type:
+                    case pyBasicParser.PLUS:
+                        text = text + " + "
+                    case pyBasicParser.MINUS:
+                        text = text + " - "
+                    case _:
+                        text = " impossible! "
+            text = text + self.visit(ctx.multiplyingExpression(i))
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#relationalExpression.
     def visitRelationalExpression(self, ctx:pyBasicParser.RelationalExpressionContext):
-        return self.visitChildren(ctx)
+        text = ""
+        if len(ctx.addingExpression()) == 1:
+            return self.visit(ctx.addingExpression(0))
+        match ctx.op.type:
+            case pyBasicParser.GTE:
+                text = f"{self.visit(ctx.addingExpression(0))} >= {self.visit(ctx.addingExpression(1))}"
+            case pyBasicParser.LTE:
+                text = f"{self.visit(ctx.addingExpression(0))} <= {self.visit(ctx.addingExpression(1))}"
+            case pyBasicParser.NEQ:
+                text = f"{self.visit(ctx.addingExpression(0))} != {self.visit(ctx.addingExpression(1))}"
+            case pyBasicParser.EQ:
+                text = f"{self.visit(ctx.addingExpression(0))} == {self.visit(ctx.addingExpression(1))}"
+            case pyBasicParser.GT:
+                text = f"{self.visit(ctx.addingExpression(0))} > {self.visit(ctx.addingExpression(1))}"
+            case pyBasicParser.LT:
+                text = f"{self.visit(ctx.addingExpression(0))} < {self.visit(ctx.addingExpression(1))}"
+            case _:
+                text = "impossible!"
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#expression.
     def visitExpression(self, ctx:pyBasicParser.ExpressionContext):
         text = ""
-        match ctx.op:
-            case None:
-                return self.visit(ctx.func_())
-            case _:
-                return "didn't work :("
-        return
+        if len(ctx.relationalExpression()) == 0:
+            return self.visit(ctx.func_())
+        for i in range(0,len(ctx.relationalExpression())):
+            if i > 0:
+                match ctx.booleanoperator(i - 1).op.type:
+                    case pyBasicParser.AND:
+                        text = text + " and "
+                    case pyBasicParser.OR:
+                        text = text + " or "
+                    case _:
+                        text = " impossible! "
+            text = text + self.visit(ctx.relationalExpression(i))
+        return text
 
 
     # Visit a parse tree produced by pyBasicParser#var_.
     def visitVar_(self, ctx:pyBasicParser.Var_Context):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by pyBasicParser#varname.
-    def visitVarname(self, ctx:pyBasicParser.VarnameContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by pyBasicParser#varsuffix.
-    def visitVarsuffix(self, ctx:pyBasicParser.VarsuffixContext):
-        return self.visitChildren(ctx)
+        varname = ctx.varname().getText()
+        return varname
 
 def pygen(input_stream, output_stream):
     lexer = pyBasicLexer(input_stream)
@@ -418,7 +478,7 @@ def pygen(input_stream, output_stream):
         translator = PyGen(output_stream)
         translator.visit(tree)
         # output_stream.write("return 0\n")
-        output_stream.write(dedent("\nif __name__ == \'__main__\':\n\tmain()"))
+        # output_stream.write(dedent("\nif __name__ == \'__main__\':\n\tmain()"))
         output_stream.write("\n")
       
 def main():

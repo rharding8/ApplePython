@@ -170,15 +170,6 @@ class pyBasicListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by pyBasicParser#TabStatement.
-    def enterTabStatement(self, ctx:pyBasicParser.TabStatementContext):
-        pass
-
-    # Exit a parse tree produced by pyBasicParser#TabStatement.
-    def exitTabStatement(self, ctx:pyBasicParser.TabStatementContext):
-        pass
-
-
     # Enter a parse tree produced by pyBasicParser#DimStatement.
     def enterDimStatement(self, ctx:pyBasicParser.DimStatementContext):
         pass
@@ -305,15 +296,6 @@ class pyBasicListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by pyBasicParser#TabFunction.
-    def enterTabFunction(self, ctx:pyBasicParser.TabFunctionContext):
-        pass
-
-    # Exit a parse tree produced by pyBasicParser#TabFunction.
-    def exitTabFunction(self, ctx:pyBasicParser.TabFunctionContext):
-        pass
-
-
     # Enter a parse tree produced by pyBasicParser#DeclarationFunction.
     def enterDeclarationFunction(self, ctx:pyBasicParser.DeclarationFunctionContext):
         pass
@@ -383,15 +365,6 @@ class pyBasicListener(ParseTreeListener):
 
     # Exit a parse tree produced by pyBasicParser#LargestIntegerFunction.
     def exitLargestIntegerFunction(self, ctx:pyBasicParser.LargestIntegerFunctionContext):
-        pass
-
-
-    # Enter a parse tree produced by pyBasicParser#SpcFunction.
-    def enterSpcFunction(self, ctx:pyBasicParser.SpcFunctionContext):
-        pass
-
-    # Exit a parse tree produced by pyBasicParser#SpcFunction.
-    def exitSpcFunction(self, ctx:pyBasicParser.SpcFunctionContext):
         pass
 
 
@@ -548,12 +521,30 @@ class pyBasicListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by pyBasicParser#multdivoperator.
+    def enterMultdivoperator(self, ctx:pyBasicParser.MultdivoperatorContext):
+        pass
+
+    # Exit a parse tree produced by pyBasicParser#multdivoperator.
+    def exitMultdivoperator(self, ctx:pyBasicParser.MultdivoperatorContext):
+        pass
+
+
     # Enter a parse tree produced by pyBasicParser#addingExpression.
     def enterAddingExpression(self, ctx:pyBasicParser.AddingExpressionContext):
         pass
 
     # Exit a parse tree produced by pyBasicParser#addingExpression.
     def exitAddingExpression(self, ctx:pyBasicParser.AddingExpressionContext):
+        pass
+
+
+    # Enter a parse tree produced by pyBasicParser#addsuboperator.
+    def enterAddsuboperator(self, ctx:pyBasicParser.AddsuboperatorContext):
+        pass
+
+    # Exit a parse tree produced by pyBasicParser#addsuboperator.
+    def exitAddsuboperator(self, ctx:pyBasicParser.AddsuboperatorContext):
         pass
 
 
@@ -572,6 +563,15 @@ class pyBasicListener(ParseTreeListener):
 
     # Exit a parse tree produced by pyBasicParser#expression.
     def exitExpression(self, ctx:pyBasicParser.ExpressionContext):
+        pass
+
+
+    # Enter a parse tree produced by pyBasicParser#booleanoperator.
+    def enterBooleanoperator(self, ctx:pyBasicParser.BooleanoperatorContext):
+        pass
+
+    # Exit a parse tree produced by pyBasicParser#booleanoperator.
+    def exitBooleanoperator(self, ctx:pyBasicParser.BooleanoperatorContext):
         pass
 
 

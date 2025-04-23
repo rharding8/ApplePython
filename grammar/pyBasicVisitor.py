@@ -99,11 +99,6 @@ class pyBasicVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by pyBasicParser#TabStatement.
-    def visitTabStatement(self, ctx:pyBasicParser.TabStatementContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by pyBasicParser#DimStatement.
     def visitDimStatement(self, ctx:pyBasicParser.DimStatementContext):
         return self.visitChildren(ctx)
@@ -174,11 +169,6 @@ class pyBasicVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by pyBasicParser#TabFunction.
-    def visitTabFunction(self, ctx:pyBasicParser.TabFunctionContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by pyBasicParser#DeclarationFunction.
     def visitDeclarationFunction(self, ctx:pyBasicParser.DeclarationFunctionContext):
         return self.visitChildren(ctx)
@@ -216,11 +206,6 @@ class pyBasicVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by pyBasicParser#LargestIntegerFunction.
     def visitLargestIntegerFunction(self, ctx:pyBasicParser.LargestIntegerFunctionContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by pyBasicParser#SpcFunction.
-    def visitSpcFunction(self, ctx:pyBasicParser.SpcFunctionContext):
         return self.visitChildren(ctx)
 
 
@@ -309,8 +294,18 @@ class pyBasicVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by pyBasicParser#multdivoperator.
+    def visitMultdivoperator(self, ctx:pyBasicParser.MultdivoperatorContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by pyBasicParser#addingExpression.
     def visitAddingExpression(self, ctx:pyBasicParser.AddingExpressionContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by pyBasicParser#addsuboperator.
+    def visitAddsuboperator(self, ctx:pyBasicParser.AddsuboperatorContext):
         return self.visitChildren(ctx)
 
 
@@ -321,6 +316,11 @@ class pyBasicVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by pyBasicParser#expression.
     def visitExpression(self, ctx:pyBasicParser.ExpressionContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by pyBasicParser#booleanoperator.
+    def visitBooleanoperator(self, ctx:pyBasicParser.BooleanoperatorContext):
         return self.visitChildren(ctx)
 
 
