@@ -47,16 +47,12 @@ line
     : linenumber (amprstmt (COLON amprstmt?)*)
     ;
 
-amperoper
-    : AMPERSAND
-    ;
-
 linenumber
     : NUMBER
     ;
 
 amprstmt
-    : amperoper? statement # AmprStatement
+    : AMPERSAND? statement # AmperStatement
     | COMMENT # CommentStatement
     | REM # RemStatement
     ;
@@ -79,16 +75,16 @@ statement
     //| TEXT
     //| HGR
     //| HGR2
-    | endstmt # EndStatement
-    | returnstmt # ReturnStatement
-    | restorestmt # RestoreStatement
-    // | amptstmt # AmptStatement
+    | END # EndStatement
+    | RETURN # ReturnStatement
+    | RESTORE # RestoreStatement
+    //| amptstmt # AmptStatement
     //| popstmt # PopStatement
     //| liststmt
     //| storestmt # StoreStatement
-    | getstmt # GetStatement
+    | GET expression (COMMA expression)* # GetStatement
     //| recallstmt # RecallStatement
-    | nextstmt # NextStatement
+    | NEXT (vardecl (',' vardecl)*)? # NextStatement
     //| instmt
     //| prstmt
     //| onerrstmt
@@ -101,94 +97,45 @@ statement
     //| hcolorstmt
     //| himemstmt # HimemStatement
     //| lomemstmt # LomemStatement
-    | printstmt1 # PrintStatement
+    | (PRINT | QUESTION) printlist? # PrintStatement
     //| pokestmt
     //| plotstmt
     //| ongotostmt # OnGotoStatement
     //| ongosubstmt # OnGosubStatement
-    | ifstmt # IfStatement
-    | forstmt1 # ForStatementIn
-    | forstmt2 # ForStatementOut
-    | inputstmt # InputStatement
-    | tabstmt # TabStatement
-    | dimstmt # DimStatement
-    | gotostmt # GotoStatement
-    | gosubstmt # GosubStatement
+    | IF expression THEN? (statement | linenumber) # IfStatement
+    | FOR vardecl EQ expression TO expression (STEP expression)? (statement NEXT vardecl?)? # InLineForStatement
+    | FOR vardecl EQ expression TO expression (STEP expression)? # ForStatement
+    | INPUT (STRINGLITERAL separator=(COMMA | SEMICOLON))? vardecl (COMMA vardecl)* # InputStatement
+    | TAB LPAREN expression RPAREN # TabStatement
+    | DIM vardecl (COMMA vardecl)* # DimStatement
+    | GOTO linenumber # GotoStatement
+    | GOSUB expression # GosubStatement
     //| callstmt # CallStatement
-    | readstmt # ReadStatement
+    | READ vardecl (COMMA vardecl)* # ReadStatement
     //| hplotstmt
     //| vplotstmt
     //| vtabstmnt # VTabStatement
     //| htabstmnt # HTabStatement
     //| waitstmt # WaitStatement
-    | datastmt # DataStatement
+    | DATA datum (COMMA datum?)* # DataStatement
     //| xdrawstmt # XDrawStatement
     //| drawstmt # DrawStatement
-    | defstmt # DefStatement
-    | letstmt # LetStatement
+    | DEF FN? var_ LPAREN var_ RPAREN EQ expression # DefStatement
+    | LET? vardecl EQ expression (COMMA expression)* # LetStatement
     //| includestmt # IncludeStatement
     ;
 
 vardecl
-    : var_ (LPAREN exprlist RPAREN)*
-    ;
-
-printstmt1
-    : (PRINT | QUESTION) printlist?
+    : var_ (LPAREN expression (COMMA expression)* RPAREN)*
     ;
 
 printlist
-    : expression (separator=(COMMA | SEMICOLON) expression?)*
+    : expression (printseparator expression?)*
     ;
 
-getstmt
-    : GET exprlist
-    ;
-
-letstmt
-    : LET? variableassignment
-    ;
-
-variableassignment
-    : vardecl EQ exprlist
-    ;
-
-ifstmt
-    : IF expression THEN? (statement | linenumber)
-    ;
-
-// for stmt 1 puts the for-next on one line
-forstmt1
-    : FOR vardecl EQ expression TO expression (STEP expression)? (statement NEXT vardecl?)?
-    ;
-
-// for stmt 2 puts the for, the statment, and the next on 3 lines.  It needs "nextstmt"
-forstmt2
-    : FOR vardecl EQ expression TO expression (STEP expression)?
-    ;
-
-nextstmt
-    : NEXT (vardecl (',' vardecl)*)?
-    ;
-
-inputstmt
-    : INPUT (STRINGLITERAL separator=(COMMA | SEMICOLON))? varlist
-    ;
-
-readstmt
-    : READ varlist
-    ;
-
-dimstmt
-    : DIM varlist
-    ;
-
-gotostmt
-    : GOTO linenumber
-    ;
-
-gosubstmt
-    : GOSUB expression
+printseparator
+    : op=(COMMA
+    | SEMICOLON)
     ;
 
 /*pokestmt
@@ -235,10 +182,6 @@ lomemstmt
     : LOMEM COLON expression
     ;*/
 
-datastmt
-    : DATA datum (COMMA datum?)*
-    ;
-
 datum
     : number
     | STRINGLITERAL
@@ -254,17 +197,9 @@ xdrawstmt
 
 drawstmt
     : DRAW expression (AT expression COMMA expression)?
-    ;*/
-
-defstmt
-    : DEF FN? var_ LPAREN var_ RPAREN EQ expression
     ;
 
-tabstmt
-    : TAB LPAREN expression RPAREN
-    ;
-
-/*speedstmt
+speedstmt
     : SPEED EQ expression
     ;
 
@@ -328,18 +263,6 @@ includestmt
     : INCLUDE expression
     ;*/
 
-endstmt
-    : END
-    ;
-
-returnstmt
-    : RETURN
-    ;
-
-restorestmt
-    : RESTORE
-    ;
-
 // expressions and such
 number
     : ('+' | '-')? (NUMBER | FLOAT)
@@ -348,35 +271,35 @@ number
 func_
     : STRINGLITERAL # StringLiteralFunction
     | number # NumberFunction
-    | tabfunc # TabFunction
+    | TAB LPAREN expression RPAREN # TabFunction
     | vardecl # DeclarationFunction
-    | chrfunc # CharacterFunction
-    | sqrfunc # SquareRootFunction
-    | lenfunc # LengthFunction
-    | strfunc # StringFunction
-    | ascfunc # AsciiFunction
+    | CHR LPAREN expression RPAREN # CharacterFunction
+    | SQR LPAREN expression RPAREN # SquareRootFunction
+    | LEN LPAREN expression RPAREN # LengthFunction
+    | STR LPAREN expression RPAREN # StringFunction
+    | ASC LPAREN expression RPAREN # AsciiFunction
     //| scrnfunc # ScreenFunction
-    | midfunc # MidFunction
+    | MID LPAREN expression COMMA expression COMMA expression RPAREN # MidFunction
     //| pdlfunc
     //| peekfunc
-    | intfunc # LargestIntegerFunction
-    | spcfunc # SpcFunction
+    | INTF LPAREN expression RPAREN # LargestIntegerFunction
+    | SPC LPAREN expression RPAREN # SpcFunction
     //| frefunc # FreFunction
     //| posfunc # PosFunction
     //| usrfunc # UserFunction
-    | leftfunc # LeftFunction
-    | valfunc # ValueFunction
-    | rightfunc # RightFunction
-    | fnfunc # FnFunction
-    | sinfunc # SinFunction
-    | cosfunc # CosFunction
-    | tanfunc # TanFunction
-    | atnfunc # ArcTanFunction
-    | rndfunc # RandFunction
-    | sgnfunc # SignFunction
-    | expfunc # ExpFunction
-    | logfunc # NaturalLogFunction
-    | absfunc # AbsoluteFunction
+    | LEFT LPAREN expression COMMA expression RPAREN # LeftFunction
+    | VAL LPAREN expression RPAREN # ValueFunction
+    | RIGHT LPAREN expression COMMA expression RPAREN # RightFunction
+    | FN var_ LPAREN expression RPAREN # FnFunction
+    | SIN LPAREN expression RPAREN # SinFunction
+    | COS LPAREN expression RPAREN # CosFunction
+    | TAN LPAREN expression RPAREN # TanFunction
+    | ATN LPAREN expression RPAREN # ArcTanFunction
+    | RND LPAREN expression RPAREN # RandFunction
+    | SGN LPAREN expression RPAREN # SignFunction
+    | EXP LPAREN expression RPAREN # ExpFunction
+    | LOG LPAREN expression RPAREN # NaturalLogFunction
+    | ABS LPAREN expression RPAREN # AbsoluteFunction
     | LPAREN expression RPAREN # ParentheticalFunction
     ;
 
@@ -419,52 +342,17 @@ varsuffix
     | PERCENT
     ;
 
-varlist
-    : vardecl (COMMA vardecl)*
-    ;
-
-exprlist
-    : expression (COMMA expression)*
-    ;
-
 // functions
-sqrfunc
-    : SQR LPAREN expression RPAREN
-    ;
-
-chrfunc
-    : CHR LPAREN expression RPAREN
-    ;
-
-lenfunc
-    : LEN LPAREN expression RPAREN
-    ;
-
-ascfunc
-    : ASC LPAREN expression RPAREN
-    ;
-
-midfunc
-    : MID LPAREN expression COMMA expression COMMA expression RPAREN
-    ;
 
 /*pdlfunc
     : PDL LPAREN expression RPAREN
-    ;*/
+    ;
 
-/*peekfunc
+peekfunc
     : PEEK LPAREN expression RPAREN
-    ;*/
-
-intfunc
-    : INTF LPAREN expression RPAREN
     ;
 
-spcfunc
-    : SPC LPAREN expression RPAREN
-    ;
-
-/*frefunc
+frefunc
     : FRE LPAREN expression RPAREN
     ;
 
@@ -474,71 +362,11 @@ posfunc
 
 usrfunc
     : USR LPAREN expression RPAREN
-    ;*/
-
-leftfunc
-    : LEFT LPAREN expression COMMA expression RPAREN
     ;
 
-rightfunc
-    : RIGHT LPAREN expression COMMA expression RPAREN
-    ;
-
-strfunc
-    : STR LPAREN expression RPAREN
-    ;
-
-fnfunc
-    : FN var_ LPAREN expression RPAREN
-    ;
-
-valfunc
-    : VAL LPAREN expression RPAREN
-    ;
-
-/*scrnfunc
+scrnfunc
     : SCRN LPAREN expression COMMA expression RPAREN
     ;*/
-
-sinfunc
-    : SIN LPAREN expression RPAREN
-    ;
-
-cosfunc
-    : COS LPAREN expression RPAREN
-    ;
-
-tanfunc
-    : TAN LPAREN expression RPAREN
-    ;
-
-atnfunc
-    : ATN LPAREN expression RPAREN
-    ;
-
-rndfunc
-    : RND LPAREN expression RPAREN
-    ;
-
-sgnfunc
-    : SGN LPAREN expression RPAREN
-    ;
-
-expfunc
-    : EXP LPAREN expression RPAREN
-    ;
-
-logfunc
-    : LOG LPAREN expression RPAREN
-    ;
-
-absfunc
-    : ABS LPAREN expression RPAREN
-    ;
-
-tabfunc
-    : TAB LPAREN expression RPAREN
-    ;
 
 DOLLAR
     : '$'
